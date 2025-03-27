@@ -1,9 +1,27 @@
+// App.js
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, FlatList, Button } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Dimensions,
+  FlatList,
+  SafeAreaView
+} from 'react-native';
 import { db } from './firebaseConfig';
-import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit
+} from 'firebase/firestore';
 
-const App = () => {
+const { width, height } = Dimensions.get('window');
+
+export default function App() {
   const [target, setTarget] = useState({ x: 100, y: 100 });
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -11,9 +29,8 @@ const App = () => {
   const [topScores, setTopScores] = useState([]);
 
   const getRandomPosition = () => {
-    const { width, height } = Dimensions.get('window');
-    const x = Math.floor(Math.random() * (width - 100));
-    const y = Math.floor(Math.random() * (height - 200));
+    const x = Math.floor(Math.random() * (width - 80));
+    const y = Math.floor(Math.random() * (height - 200)); // Evita solaparse con los encabezados
     return { x, y };
   };
 
@@ -22,7 +39,7 @@ const App = () => {
   };
 
   const handleClick = () => {
-    setScore(score + 1);
+    setScore(prev => prev + 1);
     moveTarget();
   };
 
@@ -40,7 +57,7 @@ const App = () => {
       fetchTopScores();
       return;
     }
-    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft]);
 
@@ -70,20 +87,25 @@ const App = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>🎯 Caza el Círculo</Text>
-      <Text style={styles.info}>Puntaje: {score}</Text>
-      <Text style={styles.info}>Tiempo restante: {timeLeft}s</Text>
+      <Text style={styles.text}>Puntaje: {score}</Text>
+      <Text style={styles.text}>Tiempo restante: {timeLeft}s</Text>
+
       {gameOver ? (
-        <View style={styles.messageBox}>
-          <Text style={styles.final}>¡Tiempo agotado!</Text>
-          <Text style={styles.final}>Puntaje final: {score}</Text>
-          <Button title="Jugar de nuevo" onPress={restartGame} />
-          <Text style={styles.leaderTitle}>🏆 Mejores Puntajes</Text>
+        <View style={styles.message}>
+          <Text style={styles.text}>¡Tiempo agotado!</Text>
+          <Text style={styles.text}>Puntaje final: {score}</Text>
+          <TouchableOpacity style={styles.button} onPress={restartGame}>
+            <Text style={styles.buttonText}>Jugar de nuevo</Text>
+          </TouchableOpacity>
+          <Text style={[styles.text, { marginTop: 20 }]}>🏆 Mejores Puntajes</Text>
           <FlatList
             data={topScores}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => <Text style={styles.scoreItem}>Puntaje: {item.score}</Text>}
+            renderItem={({ item }) => (
+              <Text style={styles.text}>Puntaje: {item.score}</Text>
+            )}
           />
         </View>
       ) : (
@@ -92,34 +114,28 @@ const App = () => {
           onPress={handleClick}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 40,
   },
   title: {
     fontSize: 28,
     color: '#f8fafc',
+    fontWeight: 'bold',
     marginBottom: 10,
   },
-  info: {
+  text: {
+    color: '#f8fafc',
     fontSize: 18,
-    color: '#f8fafc',
-  },
-  messageBox: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  final: {
-    fontSize: 20,
-    color: '#f8fafc',
-    marginBottom: 10,
+    marginVertical: 4,
   },
   target: {
     position: 'absolute',
@@ -127,16 +143,21 @@ const styles = StyleSheet.create({
     height: 60,
     backgroundColor: '#ef4444',
     borderRadius: 30,
+    elevation: 5,
   },
-  leaderTitle: {
-    fontSize: 20,
+  message: {
+    alignItems: 'center',
     marginTop: 20,
-    color: '#f8fafc',
   },
-  scoreItem: {
+  button: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#f8fafc',
   },
 });
-
-export default App;
