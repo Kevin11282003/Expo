@@ -1,27 +1,18 @@
-// App.js
 import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
   View,
+  Text,
   TouchableOpacity,
+  StyleSheet,
   Dimensions,
   FlatList,
-  SafeAreaView
+  SafeAreaView,
 } from 'react-native';
-import { db } from './firebaseConfig';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit
-} from 'firebase/firestore';
+import firestore from '@react-native-firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
 
-export default function App() {
+const App = () => {
   const [target, setTarget] = useState({ x: 100, y: 100 });
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -30,7 +21,7 @@ export default function App() {
 
   const getRandomPosition = () => {
     const x = Math.floor(Math.random() * (width - 80));
-    const y = Math.floor(Math.random() * (height - 200)); // Evita solaparse con los encabezados
+    const y = Math.floor(Math.random() * (height - 180));
     return { x, y };
   };
 
@@ -39,7 +30,7 @@ export default function App() {
   };
 
   const handleClick = () => {
-    setScore(prev => prev + 1);
+    setScore(score + 1);
     moveTarget();
   };
 
@@ -57,15 +48,15 @@ export default function App() {
       fetchTopScores();
       return;
     }
-    const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
+    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft]);
 
   const saveScore = async (score) => {
     try {
-      await addDoc(collection(db, 'scores'), {
+      await firestore().collection('scores').add({
         score,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     } catch (e) {
       console.error('Error al guardar el puntaje: ', e);
@@ -73,9 +64,13 @@ export default function App() {
   };
 
   const fetchTopScores = async () => {
-    const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(5));
-    const querySnapshot = await getDocs(q);
-    const scoresArray = querySnapshot.docs.map(doc => doc.data());
+    const snapshot = await firestore()
+      .collection('scores')
+      .orderBy('score', 'desc')
+      .limit(5)
+      .get();
+
+    const scoresArray = snapshot.docs.map(doc => doc.data());
     setTopScores(scoresArray);
   };
 
@@ -90,16 +85,17 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>🎯 Caza el Círculo</Text>
       <Text style={styles.text}>Puntaje: {score}</Text>
-      <Text style={styles.text}>Tiempo restante: {timeLeft}s</Text>
+      <Text style={styles.text}>Tiempo: {timeLeft}s</Text>
 
       {gameOver ? (
-        <View style={styles.message}>
+        <View style={styles.messageBox}>
           <Text style={styles.text}>¡Tiempo agotado!</Text>
           <Text style={styles.text}>Puntaje final: {score}</Text>
           <TouchableOpacity style={styles.button} onPress={restartGame}>
             <Text style={styles.buttonText}>Jugar de nuevo</Text>
           </TouchableOpacity>
-          <Text style={[styles.text, { marginTop: 20 }]}>🏆 Mejores Puntajes</Text>
+
+          <Text style={styles.text}>🏆 Mejores Puntajes</Text>
           <FlatList
             data={topScores}
             keyExtractor={(item, index) => index.toString()}
@@ -116,7 +112,7 @@ export default function App() {
       )}
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -124,40 +120,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 40,
   },
   title: {
+    marginTop: 40,
     fontSize: 28,
     color: '#f8fafc',
     fontWeight: 'bold',
-    marginBottom: 10,
   },
   text: {
     color: '#f8fafc',
     fontSize: 18,
     marginVertical: 4,
   },
-  target: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    backgroundColor: '#ef4444',
-    borderRadius: 30,
-    elevation: 5,
-  },
-  message: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
   button: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
     marginTop: 10,
+    backgroundColor: '#10b981',
+    padding: 10,
+    borderRadius: 8,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
   },
+  target: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ef4444',
+  },
+  messageBox: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
 });
+
+export default App;
